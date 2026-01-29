@@ -137,8 +137,7 @@ class Cmdb extends CController {
             error_log("CMDB: All host group retrieval strategies failed");
         }
 
-		// ========== ADD GROUP PREFIX FILTER HERE ==========
-		// Filter groups that start with CUSTOMER/, PRODUCT/, or TYPE/
+		// Filtering groups that start with CUSTOMER/, PRODUCT/, or TYPE/
 		$filteredHostGroups = [];
 		foreach ($hostGroups as $group) {
 			$name = $group['name'];
