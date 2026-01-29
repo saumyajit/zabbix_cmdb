@@ -137,6 +137,19 @@ class Cmdb extends CController {
             error_log("CMDB: All host group retrieval strategies failed");
         }
 
+		// ========== ADD GROUP PREFIX FILTER HERE ==========
+		// Filter groups that start with CUSTOMER/, PRODUCT/, or TYPE/
+		$filteredHostGroups = [];
+		foreach ($hostGroups as $group) {
+			$name = $group['name'];
+			if (strpos($name, 'CUSTOMER/') === 0 || 
+				strpos($name, 'PRODUCT/') === 0 || 
+				strpos($name, 'TYPE/') === 0) {
+				$filteredHostGroups[] = $group;
+			}
+		}
+		$hostGroups = $filteredHostGroups;
+		
         // Retrieve host list – optimized according to Zabbix 7.0 API documentation
         if (!empty($search)) {
             // Search strategy: supports fuzzy search by hostname, visible name, and IP address
