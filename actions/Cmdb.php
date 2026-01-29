@@ -255,6 +255,17 @@ class Cmdb extends CController {
         $hostData = [];
         $totalCpu = 0;
         $totalMemory = 0;
+		
+        // Filtering out hosts with URL/PUBLIC URL in their names
+		$filteredHosts = [];
+		foreach ($hosts as $host) {
+			$hostName = strtoupper($host['name']);
+			if (strpos($hostName, 'URL') === false && strpos($hostName, 'PUBLIC URL') === false) {
+				$filteredHosts[] = $host;
+			}
+		}
+		$hosts = $filteredHosts;
+        
         foreach ($hosts as $host) {
             $hostInfo = [
                 'hostid' => $host['hostid'],
