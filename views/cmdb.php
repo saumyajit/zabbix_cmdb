@@ -508,7 +508,7 @@ if (!empty($data['hosts'])) {
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
-                    ->addItem((new CSpan('🖥️'))->addClass('stat-icon'))
+                    ->addItem((new CSpan('🧠'))->addClass('stat-icon'))
                     ->addItem(
                         (new CDiv())
                             ->addClass('stat-content')
