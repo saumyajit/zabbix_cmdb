@@ -109,6 +109,7 @@ class LanguageManager {
             'Basic Group' => 'Basic Group',
             'hosts' => 'hosts',
             'cores' => 'cores',
+	        'Export CSV' => 'Export CSV',
             'Invalid input parameters.' => 'Invalid input parameters.'
         ]
     ];
