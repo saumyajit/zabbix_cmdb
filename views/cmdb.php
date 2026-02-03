@@ -425,6 +425,7 @@ $styleTag = new CTag('style', true, '
     display: flex;
     align-items: center;
     padding: 1px 0;
+    gap: 3px;  /* This for better spacing */
 }
 
 .disk-mount {
@@ -433,21 +434,40 @@ $styleTag = new CTag('style', true, '
     margin-right: 5px;
 }
 
+.disk-size {  /* This is for Disk Class */
+    color: #6c757d;
+    font-size: 10px;
+    font-weight: normal;
+}
+
 .disk-percentage {
     font-weight: 600;
 }
 
-.disk-high {
-    color: #dc3545;
-}
+/* Column width controls */
+.hosts-table thead th:nth-child(1) { width: 180px; } /* Host Name */
+.hosts-table thead th:nth-child(2) { width: 70px; } /* IP Address */
+.hosts-table thead th:nth-child(3) { width: 40px; }  /* Architecture */
+.hosts-table thead th:nth-child(4) { width: 80px; } /* Interface Type */
+.hosts-table thead th:nth-child(5) { width: 55px; }  /* CPU Total */
+.hosts-table thead th:nth-child(6) { width: 55px; }  /* CPU Usage */
+.hosts-table thead th:nth-child(7) { width: 70px; } /* Memory Total */
+.hosts-table thead th:nth-child(8) { width: 78px; } /* Memory Usage */
+.hosts-table thead th:nth-child(9) { width: 200px; } /* Disk Usage */
+.hosts-table thead th:nth-child(10) { width: 180px; } /* Operating System */
+.hosts-table thead th:nth-child(11) { width: 180px; } /* Host Group */
 
-.disk-medium {
-    color: #ffc107;
-}
-
-.disk-normal {
-    color: #28a745;
-}
+.hosts-table tbody td:nth-child(1) { width: 180px; }
+.hosts-table tbody td:nth-child(2) { width: 70px; }
+.hosts-table tbody td:nth-child(3) { width: 40px; }
+.hosts-table tbody td:nth-child(4) { width: 80px; }
+.hosts-table tbody td:nth-child(5) { width: 55px; }
+.hosts-table tbody td:nth-child(6) { width: 55px; }
+.hosts-table tbody td:nth-child(7) { width: 70px; }
+.hosts-table tbody td:nth-child(8) { width: 78px; }
+.hosts-table tbody td:nth-child(9) { width: 200px; }
+.hosts-table tbody td:nth-child(10) { width: 180px; }
+.hosts-table tbody td:nth-child(11) { width: 180px; }
 
 ');
 
@@ -626,9 +646,9 @@ $table->addClass('hosts-table');
 // Add table headers (with sorting links)
 $header = [
     createSortLink(LanguageManager::t('Host Name'), 'name', $data),
-    createSortLink(LanguageManager::t('System Name'), 'system_name', $data),
+//  createSortLink(LanguageManager::t('System Name'), 'system_name', $data),
     createSortLink(LanguageManager::t('IP Address'), 'ip', $data),
-    createSortLink(LanguageManager::t('Architecture'), 'os_architecture', $data),
+    createSortLink(LanguageManager::t('Arch'), 'os_architecture', $data),
     LanguageManager::t('Interface Type'),
     createSortLink(LanguageManager::t('CPU Total'), 'cpu_total', $data),
     createSortLink(LanguageManager::t('CPU Usage'), 'cpu_usage', $data),
@@ -814,6 +834,9 @@ if (empty($data['hosts'])) {
 			foreach ($host['disk_usage'] as $disk) {
 				$percentage = $disk['percentage'];
 				$mount = htmlspecialchars($disk['mount']);
+				$totalSize = isset($disk['total_size']) && $disk['total_size'] > 0 
+					? ItemFinder::formatMemorySize($disk['total_size']) 
+					: '';
 				
 				// Determine color based on usage
 				$colorClass = 'disk-normal';
@@ -826,10 +849,16 @@ if (empty($data['hosts'])) {
 					$icon = '🟡';
 				}
 				
+				// Format: / => 16.93 GB (68.58% 🟡)
+				$diskText = $mount . ' => ';
+				if (!empty($totalSize)) {
+					$diskText .= $totalSize . ' ';
+				}
+				$diskText .= '(' . $icon . ' ' . $percentage . '%)';
+				
 				$diskItem = (new CDiv())
 					->addClass('disk-usage-item')
-					->addItem((new CSpan($mount . ':'))->addClass('disk-mount'))
-					->addItem((new CSpan($icon . ' ' . $percentage . '%'))->addClass('disk-percentage ' . $colorClass));
+					->addItem((new CSpan($diskText))->addClass('disk-percentage ' . $colorClass));
 				
 				$diskContainer->addItem($diskItem);
 			}
@@ -886,7 +915,7 @@ if (empty($data['hosts'])) {
 
         $table->addRow([
             $hostNameCol,
-            $systemNameCol,
+//          $systemNameCol,
             $ipCol,
             $archCol,
             $interfaceCol,
