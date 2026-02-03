@@ -167,7 +167,7 @@ $styleTag = new CTag('style', true, '
 }
 
 .btn {
-    padding: 8px 16px;
+    padding: 3px 6px;
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
@@ -559,6 +559,17 @@ $content = (new CDiv())
 
                                         return $select;
                                     })())
+                            )
+							->addItem(
+                                (new CDiv())
+                                    ->addClass('form-field')
+                                    ->addItem(
+                                        (new CButton('export', '📥 ' . LanguageManager::t('Export To CSV')))
+                                            ->addClass('btn')
+                                            ->addClass('btn-secondary')
+                                            ->setAttribute('type', 'button')
+                                            ->setAttribute('onclick', 'exportToCSV()')
+                                    )
                             )
                     )
                     ->addItem((new CInput('hidden', 'action', 'cmdb')))
@@ -995,6 +1006,20 @@ function handleInterfaceTypeChange(select) {
     if (form) {
         form.submit();
     }
+}
+
+// Adding Export Function
+function exportToCSV() {
+    var search = document.querySelector(\'input[name="search"]\').value;
+    var groupid = document.getElementById(\'groupid-select\').value;
+    var interfaceType = document.getElementById(\'interface-type-select\').value;
+    
+    var exportUrl = \'zabbix.php?action=cmdb.export&format=csv\';
+    if (search) exportUrl += \'&search=\' + encodeURIComponent(search);
+    if (groupid) exportUrl += \'&groupid=\' + groupid;
+    if (interfaceType) exportUrl += \'&interface_type=\' + interfaceType;
+    
+    window.location.href = exportUrl;
 }
 
 document.addEventListener("DOMContentLoaded", function() {
