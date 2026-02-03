@@ -160,6 +160,7 @@ class Cmdb extends CController {
                     'output' => ['hostid', 'host', 'name', 'status', 'maintenance_status', 'maintenance_type', 'maintenanceid'],
                     'selectHostGroups' => ['groupid', 'name'],
                     'selectInterfaces' => ['interfaceid', 'ip', 'dns', 'type', 'main', 'available', 'error'],
+					'selectInventory' => ['contact', 'type_full'],
                     'search' => [
                         'host' => '*' . $search . '*',
                         'name' => '*' . $search . '*'
@@ -203,6 +204,7 @@ class Cmdb extends CController {
                             'output' => ['hostid', 'host', 'name', 'status', 'maintenance_status', 'maintenance_type', 'maintenanceid'],
                             'selectHostGroups' => ['groupid', 'name'],
                             'selectInterfaces' => ['interfaceid', 'ip', 'dns', 'type', 'main', 'available', 'error'],
+							'selectInventory' => ['contact', 'type_full'],
                             'hostids' => $hostIds,
                             'sortfield' => 'host',
                             'sortorder' => 'ASC'
@@ -230,6 +232,7 @@ class Cmdb extends CController {
                 'output' => ['hostid', 'host', 'name', 'status', 'maintenance_status', 'maintenance_type', 'maintenanceid'],
                 'selectHostGroups' => ['groupid', 'name'],
                 'selectInterfaces' => ['interfaceid', 'ip', 'dns', 'type', 'main', 'available', 'error'],
+				'selectInventory' => ['contact', 'type_full'],
                 'sortfield' => 'host',
                 'sortorder' => 'ASC',
                 'limit' => 1000
@@ -293,12 +296,24 @@ class Cmdb extends CController {
                 'cpu_usage' => '-',
                 'memory_total' => '-',
                 'memory_usage' => '-',
-                'kernel_version' => '-'
+                'kernel_version' => '-',
+				'customer' => '-',
+				'product' => '-'
             ];
 
             // Get the actual availability status of the host
             $availability = ItemFinder::getHostAvailabilityStatus($host['hostid'], $host['interfaces']);
             $hostInfo['availability'] = $availability;
+
+			// Extract Inventory data for Customer & Product
+			if (isset($host['inventory']) && is_array($host['inventory'])) {
+				if (isset($host['inventory']['contact']) && !empty($host['inventory']['contact'])) {
+					$hostInfo['customer'] = $host['inventory']['contact'];
+				}
+				if (isset($host['inventory']['type_full']) && !empty($host['inventory']['type_full'])) {
+					$hostInfo['product'] = $host['inventory']['type_full'];
+				}
+			}
 
             // Get total CPU count
             $cpuResult = ItemFinder::findCpuCount($host['hostid']);
