@@ -2,9 +2,9 @@
 
 namespace Modules\ZabbixCmdb\Actions;
 
-use CController;
-use CControllerResponseData;
-use API;
+use CController,
+    CControllerResponseData,
+    API;
 
 require_once dirname(__DIR__) . '/lib/LanguageManager.php';
 require_once dirname(__DIR__) . '/lib/ItemFinder.php';
@@ -13,9 +13,7 @@ use Modules\ZabbixCmdb\Lib\ItemFinder;
 
 class CmdbExport extends CController {
 
-    public function __construct() {
-        parent::__construct();
-        
+    public function init(): void {
         // Disable CSRF validation for export
         if (method_exists($this, 'disableCsrfValidation')) {
             $this->disableCsrfValidation();
@@ -32,12 +30,7 @@ class CmdbExport extends CController {
             'format' => 'in csv'
         ];
 
-        $ret = $this->validateInput($fields);
-        if (!$ret) {
-            $this->setResponse(new CControllerResponseData(['error' => 'Invalid input parameters.']));
-        }
-
-        return $ret;
+        return $this->validateInput($fields);
     }
 
     protected function checkPermissions(): bool {
@@ -45,23 +38,25 @@ class CmdbExport extends CController {
     }
 
     protected function doAction(): void {
+        // Get the same filters as the main view
         $search = $this->getInput('search', '');
         $groupid = $this->getInput('groupid', 0);
         $interface_type = $this->getInput('interface_type', 0);
 
-        // Get host data (same logic as Cmdb.php)
-        $hosts = $this->getHostData($search, $groupid, $interface_type);
-
+        // Reuse the same host retrieval logic from Cmdb.php
+        $hosts = $this->getFilteredHosts($search, $groupid, $interface_type);
+        
         // Generate CSV
-        $this->exportCSV($hosts);
+        $this->generateCSV($hosts);
     }
 
-    private function getHostData($search, $groupid, $interface_type) {
-        // Build host query parameters
+    private function getFilteredHosts($search, $groupid, $interface_type) {
+        // Copy the exact same host retrieval logic from your Cmdb.php
+        // (lines 153-283 from your Cmdb.php)
+        
         if (!empty($search)) {
             $allFoundHosts = [];
             
-            // Search by hostname
             try {
                 $nameSearchParams = [
                     'output' => ['hostid', 'host', 'name', 'status', 'maintenance_status', 'maintenance_type', 'maintenanceid'],
@@ -76,22 +71,22 @@ class CmdbExport extends CController {
                     'searchByAny' => true,
                     'sortfield' => 'host',
                     'sortorder' => 'ASC',
-                    'limit' => 10000
+                    'limit' => 1000
                 ];
-
+                
                 if ($groupid > 0) {
                     $nameSearchParams['groupids'] = [$groupid];
                 }
-
+                
                 $nameHosts = API::Host()->get($nameSearchParams);
+                
                 foreach ($nameHosts as $host) {
                     $allFoundHosts[$host['hostid']] = $host;
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 error_log("Name search failed: " . $e->getMessage());
             }
-
-            // Search by IP
+            
             if (preg_match('/\d/', $search)) {
                 try {
                     $interfaces = API::HostInterface()->get([
@@ -103,9 +98,10 @@ class CmdbExport extends CController {
                         'searchWildcardsEnabled' => true,
                         'searchByAny' => true
                     ]);
-
+                    
                     if (!empty($interfaces)) {
                         $hostIds = array_unique(array_column($interfaces, 'hostid'));
+                        
                         $ipSearchParams = [
                             'output' => ['hostid', 'host', 'name', 'status', 'maintenance_status', 'maintenance_type', 'maintenanceid'],
                             'selectHostGroups' => ['groupid', 'name'],
@@ -115,21 +111,22 @@ class CmdbExport extends CController {
                             'sortfield' => 'host',
                             'sortorder' => 'ASC'
                         ];
-
+                        
                         if ($groupid > 0) {
                             $ipSearchParams['groupids'] = [$groupid];
                         }
-
+                        
                         $ipHosts = API::Host()->get($ipSearchParams);
+                        
                         foreach ($ipHosts as $host) {
                             $allFoundHosts[$host['hostid']] = $host;
                         }
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     error_log("IP search failed: " . $e->getMessage());
                 }
             }
-
+            
             $hosts = array_values($allFoundHosts);
         } else {
             $hostParams = [
@@ -139,22 +136,22 @@ class CmdbExport extends CController {
                 'selectInventory' => ['contact', 'type_full'],
                 'sortfield' => 'host',
                 'sortorder' => 'ASC',
-                'limit' => 10000
+                'limit' => 1000
             ];
-
+            
             if ($groupid > 0) {
                 $hostParams['groupids'] = [$groupid];
             }
-
+            
             try {
                 $hosts = API::Host()->get($hostParams);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 error_log("Host fetch failed: " . $e->getMessage());
                 $hosts = [];
             }
         }
 
-        // Filter by interface type
+        // Apply interface type filter
         if ($interface_type > 0) {
             $filteredHosts = [];
             foreach ($hosts as $host) {
@@ -170,7 +167,7 @@ class CmdbExport extends CController {
             $hosts = $filteredHosts;
         }
 
-        // Filter out hosts with URL/PUBLIC URL in their names
+        // Filter out URL hosts
         $filteredHosts = [];
         foreach ($hosts as $host) {
             $hostName = strtoupper($host['name']);
@@ -179,184 +176,161 @@ class CmdbExport extends CController {
             }
         }
 
-        // Process host data
-        $hostData = [];
-        foreach ($filteredHosts as $host) {
-            $hostInfo = [
-                'hostid' => $host['hostid'],
-                'host' => $host['host'],
-                'name' => $host['name'],
-                'status' => $host['status'],
-                'maintenance_status' => isset($host['maintenance_status']) ? $host['maintenance_status'] : 0,
-                'groups' => isset($host['groups']) ? $host['groups'] : (isset($host['hostgroups']) ? $host['hostgroups'] : []),
-                'interfaces' => isset($host['interfaces']) ? $host['interfaces'] : [],
-                'cpu_total' => '-',
-                'cpu_usage' => '-',
-                'memory_total' => '-',
-                'memory_usage' => '-',
-                'customer' => '-',
-                'product' => '-',
-                'disk_usage' => []
-            ];
-
-            // Extract inventory data
-            if (isset($host['inventory']) && is_array($host['inventory'])) {
-                if (isset($host['inventory']['contact']) && !empty($host['inventory']['contact'])) {
-                    $hostInfo['customer'] = $host['inventory']['contact'];
-                }
-                if (isset($host['inventory']['type_full']) && !empty($host['inventory']['type_full'])) {
-                    $hostInfo['product'] = $host['inventory']['type_full'];
-                }
-            }
-
-            // Get availability status
-            $availability = ItemFinder::getHostAvailabilityStatus($host['hostid'], $host['interfaces']);
-            $hostInfo['availability'] = $availability;
-
-            // Get main IP
-            $mainIp = '';
-            foreach ($host['interfaces'] as $interface) {
-                if ($interface['main'] == 1) {
-                    $mainIp = !empty($interface['ip']) ? $interface['ip'] : $interface['dns'];
-                    break;
-                }
-            }
-            $hostInfo['ip'] = $mainIp;
-
-            // Get CPU count
-            $cpuResult = ItemFinder::findCpuCount($host['hostid']);
-            if ($cpuResult && $cpuResult['value'] !== null) {
-                $hostInfo['cpu_total'] = $cpuResult['value'];
-            }
-
-            // Get CPU usage
-            $cpuUsageResult = ItemFinder::findCpuUsage($host['hostid']);
-            if ($cpuUsageResult && $cpuUsageResult['value'] !== null) {
-                $hostInfo['cpu_usage'] = round(floatval($cpuUsageResult['value']), 2) . '%';
-            }
-
-            // Get memory total
-            $memoryResult = ItemFinder::findMemoryTotal($host['hostid']);
-            if ($memoryResult && $memoryResult['value'] !== null) {
-                $hostInfo['memory_total'] = ItemFinder::formatMemorySize($memoryResult['value']);
-            }
-
-            // Get memory usage
-            $memoryUsageResult = ItemFinder::findMemoryUsage($host['hostid']);
-            if ($memoryUsageResult && $memoryUsageResult['value'] !== null) {
-                $hostInfo['memory_usage'] = round(floatval($memoryUsageResult['value']), 2) . '%';
-            }
-
-            // Get disk usage
-            $diskUsageResult = ItemFinder::findDiskUsage($host['hostid']);
-            if ($diskUsageResult !== null) {
-                $hostInfo['disk_usage'] = $diskUsageResult;
-            }
-
-            // Get OS
-            $osResult = ItemFinder::findOperatingSystem($host['hostid']);
-            if ($osResult && $osResult['value'] !== null) {
-                $hostInfo['operating_system'] = $osResult['value'];
-            } else {
-                $hostInfo['operating_system'] = '-';
-            }
-
-            // Get OS Architecture
-            $archResult = ItemFinder::findOsArchitecture($host['hostid']);
-            if ($archResult && $archResult['value'] !== null) {
-                $hostInfo['os_architecture'] = $archResult['value'];
-            } else {
-                $hostInfo['os_architecture'] = '-';
-            }
-
-            // Get host groups
-            $groupNames = [];
-            if (isset($host['groups']) && is_array($host['groups'])) {
-                $groupNames = array_column($host['groups'], 'name');
-            }
-            $hostInfo['host_groups'] = implode(', ', $groupNames);
-
-            $hostData[] = $hostInfo;
-        }
-
-        return $hostData;
+        return $filteredHosts;
     }
 
-    private function exportCSV($hosts) {
+    private function generateCSV($hosts) {
         // Set headers for CSV download
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="cmdb_export_' . date('Y-m-d_H-i-s') . '.csv"');
+        header('Content-Disposition: attachment; filename="cmdb_export_' . date('Y-m-d_His') . '.csv"');
         header('Pragma: no-cache');
         header('Expires: 0');
 
         // Open output stream
         $output = fopen('php://output', 'w');
 
-        // Add BOM for UTF-8 (helps Excel recognize UTF-8)
+        // Write UTF-8 BOM for Excel compatibility
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
         // CSV Headers
         $headers = [
-            'Host Name',
-            'IP Address',
-            'Customer',
-            'Product',
-            'Architecture',
-            'CPU Total',
-            'CPU Usage',
-            'Memory Total',
-            'Memory Usage',
-            'Disk Usage',
-            'Operating System',
-            'Status',
-            'Host Groups'
+            LanguageManager::t('Host Name'),
+            LanguageManager::t('IP Address'),
+            LanguageManager::t('Customer'),
+            LanguageManager::t('Product'),
+            LanguageManager::t('Architecture'),
+            LanguageManager::t('Interface Type'),
+            LanguageManager::t('CPU Total'),
+            LanguageManager::t('CPU Usage'),
+            LanguageManager::t('Memory Total'),
+            LanguageManager::t('Memory Usage'),
+            LanguageManager::t('Storage Total'),
+            LanguageManager::t('Disk Usage'),
+            LanguageManager::t('Operating System'),
+            LanguageManager::t('Kernel Version'),
+            LanguageManager::t('Host Group'),
+            LanguageManager::t('Status')
         ];
         fputcsv($output, $headers);
 
-        // CSV Data
+        // Process each host and write data
         foreach ($hosts as $host) {
-            // Format disk usage for CSV
-            $diskUsageText = '';
-            if (!empty($host['disk_usage'])) {
-                $diskParts = [];
-                foreach ($host['disk_usage'] as $disk) {
-                    $totalSize = isset($disk['total_size']) && $disk['total_size'] > 0 
-                        ? ItemFinder::formatMemorySize($disk['total_size']) 
-                        : '';
-                    $diskParts[] = $disk['mount'] . ': ' . ($totalSize ? $totalSize . ' ' : '') . '(' . $disk['percentage'] . '%)';
-                }
-                $diskUsageText = implode('; ', $diskParts);
-            } else {
-                $diskUsageText = '-';
-            }
-
-            // Determine status
-            $status = 'Unknown';
+            // Get availability status
+            $availability = ItemFinder::getHostAvailabilityStatus($host['hostid'], $host['interfaces'] ?? []);
+            
+            // Determine status text
             if ($host['status'] == 1) {
-                $status = 'Disabled';
+                $statusText = 'Disabled';
             } elseif (isset($host['maintenance_status']) && $host['maintenance_status'] == 1) {
-                $status = 'Maintenance';
+                $statusText = 'Maintenance';
             } else {
-                $availability = isset($host['availability']) ? $host['availability'] : ['status' => 'unknown'];
-                $status = ucfirst($availability['status']);
+                $statusText = ucfirst($availability['status']);
             }
 
+            // Get IP addresses
+            $ipAddresses = [];
+            if (!empty($host['interfaces'])) {
+                foreach ($host['interfaces'] as $interface) {
+                    if (!empty($interface['ip'])) {
+                        $ipAddresses[] = $interface['ip'];
+                    }
+                }
+            }
+            $ipAddress = !empty($ipAddresses) ? implode(', ', $ipAddresses) : '-';
+
+            // Get interface types
+            $interfaceTypes = [];
+            if (!empty($host['interfaces'])) {
+                foreach ($host['interfaces'] as $interface) {
+                    switch ($interface['type']) {
+                        case 1: $interfaceTypes[] = 'Agent'; break;
+                        case 2: $interfaceTypes[] = 'SNMP'; break;
+                        case 3: $interfaceTypes[] = 'IPMI'; break;
+                        case 4: $interfaceTypes[] = 'JMX'; break;
+                    }
+                }
+            }
+            $interfaceType = !empty($interfaceTypes) ? implode(', ', array_unique($interfaceTypes)) : '-';
+
+            // Get host groups (filtered)
+            $groupNames = [];
+            $groups = isset($host['groups']) ? $host['groups'] : (isset($host['hostgroups']) ? $host['hostgroups'] : []);
+            foreach ($groups as $group) {
+                $name = $group['name'];
+                if (strpos($name, 'CUSTOMER/') === 0 || 
+                    strpos($name, 'PRODUCT/') === 0 || 
+                    strpos($name, 'TYPE/') === 0) {
+                    $groupNames[] = $name;
+                }
+            }
+            $hostGroup = !empty($groupNames) ? implode(', ', $groupNames) : '-';
+
+            // Get customer and product from inventory
+            $customer = '-';
+            $product = '-';
+            if (isset($host['inventory']) && is_array($host['inventory'])) {
+                if (isset($host['inventory']['contact']) && !empty($host['inventory']['contact'])) {
+                    $customer = $host['inventory']['contact'];
+                }
+                if (isset($host['inventory']['type_full']) && !empty($host['inventory']['type_full'])) {
+                    $product = $host['inventory']['type_full'];
+                }
+            }
+
+            // Get metrics
+            $cpuTotal = ItemFinder::findCpuCount($host['hostid']);
+            $cpuTotalValue = ($cpuTotal && $cpuTotal['value'] !== null) ? $cpuTotal['value'] : '-';
+
+            $cpuUsage = ItemFinder::findCpuUsage($host['hostid']);
+            $cpuUsageValue = ($cpuUsage && $cpuUsage['value'] !== null) ? round(floatval($cpuUsage['value']), 2) . '%' : '-';
+
+            $memoryTotal = ItemFinder::findMemoryTotal($host['hostid']);
+            $memoryTotalValue = ($memoryTotal && $memoryTotal['value'] !== null) ? ItemFinder::formatMemorySize($memoryTotal['value']) : '-';
+
+            $memoryUsage = ItemFinder::findMemoryUsage($host['hostid']);
+            $memoryUsageValue = ($memoryUsage && $memoryUsage['value'] !== null) ? round(floatval($memoryUsage['value']), 2) . '%' : '-';
+
+            $storageTotal = ItemFinder::findStorageTotal($host['hostid']);
+            $storageTotalValue = ($storageTotal !== null) ? ItemFinder::formatMemorySize($storageTotal) : '-';
+
+            $diskUsage = ItemFinder::findDiskUsage($host['hostid']);
+            $diskUsageValue = '-';
+            if (!empty($diskUsage)) {
+                $diskParts = [];
+                foreach ($diskUsage as $disk) {
+                    $diskParts[] = $disk['mount'] . ': ' . $disk['percentage'] . '%';
+                }
+                $diskUsageValue = implode('; ', $diskParts);
+            }
+
+            $os = ItemFinder::findOperatingSystem($host['hostid']);
+            $osValue = ($os && $os['value'] !== null) ? $os['value'] : '-';
+
+            $kernel = ItemFinder::findKernelVersion($host['hostid']);
+            $kernelValue = ($kernel && $kernel['value'] !== null) ? ItemFinder::extractKernelInfo($kernel['value']) : '-';
+
+            $arch = ItemFinder::findOsArchitecture($host['hostid']);
+            $archValue = ($arch && $arch['value'] !== null) ? $arch['value'] : '-';
+
+            // Write row
             $row = [
                 $host['name'],
-                $host['ip'],
-                $host['customer'],
-                $host['product'],
-                $host['os_architecture'],
-                $host['cpu_total'],
-                $host['cpu_usage'],
-                $host['memory_total'],
-                $host['memory_usage'],
-                $diskUsageText,
-                $host['operating_system'],
-                $status,
-                $host['host_groups']
+                $ipAddress,
+                $customer,
+                $product,
+                $archValue,
+                $interfaceType,
+                $cpuTotalValue,
+                $cpuUsageValue,
+                $memoryTotalValue,
+                $memoryUsageValue,
+                $storageTotalValue,
+                $diskUsageValue,
+                $osValue,
+                $kernelValue,
+                $hostGroup,
+                $statusText
             ];
-
             fputcsv($output, $row);
         }
 
