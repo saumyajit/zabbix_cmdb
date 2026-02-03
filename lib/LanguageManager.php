@@ -92,6 +92,8 @@ class LanguageManager {
             'Clear' => 'Clear',
             'Total Hosts' => 'Total Hosts',
             'Host Groups' => 'Host Groups',
+			'Customer' => 'Customer',
+			'Product' => 'Product',
             'Host List' => 'Host List',
             'Search host groups...' => 'Search host groups...',
             'Enter group name' => 'Enter group name',
