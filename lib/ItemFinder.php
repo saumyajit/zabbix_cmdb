@@ -72,6 +72,7 @@ class ItemFinder {
             ['filter' => ['key_' => 'vm.memory.util[]']],
             ['filter' => ['key_' => 'vm.memory.util']],
             ['filter' => ['key_' => 'vm.memory.pused']],
+            ['filter' => ['key_' => 'vm.memory.utilization']],
             // Use name-based search as a fallback
             ['search' => ['name' => 'Memory utilization'], 'searchWildcardsEnabled' => true],
             ['search' => ['name' => 'Memory Utilization'], 'searchWildcardsEnabled' => true],
@@ -366,7 +367,7 @@ class ItemFinder {
 
 	/**
 	* Find disk usage for all filesystems
-	* Returns an array of mount points with their usage percentages
+	* Returns an array of mount points with their usage percentages and sizes
 	*/
 	public static function findDiskUsage($hostid) {
 		try {
@@ -418,7 +419,14 @@ class ItemFinder {
 			
 			foreach ($filesystems as $mountPoint => $metrics) {
 				$percentage = null;
+				$totalSize = null;
 				
+				// Get total size
+				if (isset($metrics['total'])) {
+					$totalSize = $metrics['total'];
+				}
+				
+				// Calculate percentage
 				if (isset($metrics['pused'])) {
 					$percentage = $metrics['pused'];
 				}
@@ -443,7 +451,8 @@ class ItemFinder {
 				if ($percentage !== null) {
 					$diskUsageData[] = [
 						'mount' => $mountPoint,
-						'percentage' => round($percentage, 2)
+						'percentage' => round($percentage, 2),
+						'total_size' => $totalSize
 					];
 				}
 			}
