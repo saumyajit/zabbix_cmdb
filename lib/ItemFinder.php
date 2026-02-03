@@ -314,4 +314,176 @@ class ItemFinder {
             return ['status' => 'unknown', 'text' => 'Unknown', 'class' => 'status-unknown'];
         }
     }
+	
+	/**
+	* Find total storage across all filesystems
+	*/
+	public static function findStorageTotal($hostid) {
+		try {
+			$hostid = intval($hostid);
+			
+			if ($hostid <= 0) {
+				return null;
+			}
+			
+			$allItems = API::Item()->get([
+				'output' => ['itemid', 'name', 'key_', 'lastvalue', 'value_type'],
+				'hostids' => [$hostid],
+				'filter' => ['status' => ITEM_STATUS_ACTIVE]
+			]);
+	
+			$totalStorage = 0;
+			$processedMounts = [];
+			
+			foreach ($allItems as $item) {
+				$key = $item['key_'];
+				
+				if (strpos($key, 'vfs.fs.size') !== false && preg_match('/vfs\.fs\.size\[([^,\]]+),\s*total\]/', $key, $matches)) {
+					$mountPoint = trim($matches[1]);
+					$mountPoint = str_replace('"', '', $mountPoint);
+					
+					if (strpos($mountPoint, '{#') !== false || 
+						strpos($mountPoint, '$') !== false ||
+						in_array($mountPoint, $processedMounts)) {
+						continue;
+					}
+					
+					if (isset($item['lastvalue']) && is_numeric($item['lastvalue']) && $item['lastvalue'] > 0) {
+						$value = floatval($item['lastvalue']);
+						$totalStorage += $value;
+						$processedMounts[] = $mountPoint;
+					}
+				}
+			}
+	
+			return $totalStorage > 0 ? $totalStorage : null;
+			
+		} catch (Exception $e) {
+			error_log("Failed to get storage total for host {$hostid}: " . $e->getMessage());
+			return null;
+		}
+	}
+
+	/**
+	* Find disk usage for all filesystems
+	* Returns an array of mount points with their usage percentages
+	*/
+	public static function findDiskUsage($hostid) {
+		try {
+			$hostid = intval($hostid);
+			
+			if ($hostid <= 0) {
+				return null;
+			}
+			
+			$diskUsageData = [];
+			
+			$allItems = API::Item()->get([
+				'output' => ['itemid', 'name', 'key_', 'lastvalue', 'value_type'],
+				'hostids' => [$hostid],
+				'filter' => ['status' => ITEM_STATUS_ACTIVE]
+			]);
+	
+			$vfsItems = [];
+			foreach ($allItems as $item) {
+				if (strpos($item['key_'], 'vfs.fs.size') !== false) {
+					$vfsItems[] = $item;
+				}
+			}
+	
+			$filesystems = [];
+			
+			foreach ($vfsItems as $item) {
+				$key = $item['key_'];
+				
+				if (preg_match('/vfs\.fs\.size\[([^,\]]+),\s*(pused|pfree|total|used|free)\]/', $key, $matches)) {
+					$mountPoint = trim($matches[1]);
+					$metric = $matches[2];
+					
+					if (strpos($mountPoint, '{#') !== false || strpos($mountPoint, '$') !== false) {
+						continue;
+					}
+					
+					$mountPoint = str_replace('"', '', $mountPoint);
+					
+					if (!isset($filesystems[$mountPoint])) {
+						$filesystems[$mountPoint] = [];
+					}
+					
+					if (isset($item['lastvalue']) && $item['lastvalue'] !== null && $item['lastvalue'] !== '') {
+						$filesystems[$mountPoint][$metric] = floatval($item['lastvalue']);
+					}
+				}
+			}
+			
+			foreach ($filesystems as $mountPoint => $metrics) {
+				$percentage = null;
+				
+				if (isset($metrics['pused'])) {
+					$percentage = $metrics['pused'];
+				}
+				elseif (isset($metrics['pfree'])) {
+					$percentage = 100 - $metrics['pfree'];
+				}
+				elseif (isset($metrics['total']) && isset($metrics['used'])) {
+					$total = $metrics['total'];
+					$used = $metrics['used'];
+					if ($total > 0) {
+						$percentage = ($used / $total) * 100;
+					}
+				}
+				elseif (isset($metrics['total']) && isset($metrics['free'])) {
+					$total = $metrics['total'];
+					$free = $metrics['free'];
+					if ($total > 0) {
+						$percentage = (($total - $free) / $total) * 100;
+					}
+				}
+				
+				if ($percentage !== null) {
+					$diskUsageData[] = [
+						'mount' => $mountPoint,
+						'percentage' => round($percentage, 2)
+					];
+				}
+			}
+			
+			usort($diskUsageData, function($a, $b) {
+				$aIsWindows = preg_match('/^[A-Z]:$/', $a['mount']);
+				$bIsWindows = preg_match('/^[A-Z]:$/', $b['mount']);
+				
+				if ($aIsWindows && !$bIsWindows) return -1;
+				if (!$aIsWindows && $bIsWindows) return 1;
+				
+				if ($a['mount'] === '/' && $b['mount'] !== '/') return -1;
+				if ($a['mount'] !== '/' && $b['mount'] === '/') return 1;
+				
+				return strcmp($a['mount'], $b['mount']);
+			});
+			
+			return !empty($diskUsageData) ? $diskUsageData : null;
+			
+		} catch (Exception $e) {
+			error_log("Failed to get disk usage for host {$hostid}: " . $e->getMessage());
+			return null;
+		}
+	}
+
+	
+	/**
+	* Format disk usage data for display
+	*/
+	public static function formatDiskUsage($diskUsageData) {
+		if (empty($diskUsageData)) {
+			return '-';
+		}
+		
+		$formatted = [];
+		foreach ($diskUsageData as $disk) {
+			$formatted[] = $disk['mount'] . ': ' . $disk['percentage'] . '%';
+		}
+		
+		return implode("\n", $formatted);
+	}
+
 }
