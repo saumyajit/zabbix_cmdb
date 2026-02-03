@@ -267,6 +267,7 @@ class Cmdb extends CController {
         $hostData = [];
         $totalCpu = 0;
         $totalMemory = 0;
+		$totalStorage = 0;
 		
         // Filtering out hosts with URL/PUBLIC URL in their names
 		$filteredHosts = [];
@@ -327,6 +328,23 @@ class Cmdb extends CController {
             if ($memoryResult && $memoryResult['value'] !== null) {
                 $hostInfo['memory_total'] = ItemFinder::formatMemorySize($memoryResult['value']);
             }
+			
+			// Get total storage
+			$storageTotal = ItemFinder::findStorageTotal($host['hostid']);
+			if ($storageTotal !== null) {
+				$hostInfo['storage_total'] = ItemFinder::formatMemorySize($storageTotal);
+				$totalStorage += intval($storageTotal);
+			} else {
+				$hostInfo['storage_total'] = '-';
+			}
+			
+			// Get disk usage
+			$diskUsageResult = ItemFinder::findDiskUsage($host['hostid']);
+			if ($diskUsageResult !== null) {
+				$hostInfo['disk_usage'] = $diskUsageResult;
+			} else {
+				$hostInfo['disk_usage'] = [];
+			}
 
             // Get kernel version
             $kernelResult = ItemFinder::findKernelVersion($host['hostid']);
@@ -393,7 +411,8 @@ class Cmdb extends CController {
             'sort' => $sort,
             'sortorder' => $sortorder,
             'total_cpu' => $totalCpu,
-            'total_memory' => $totalMemory
+            'total_memory' => $totalMemory,
+            'total_storage' => $totalStorage
         ]);
         
         // Explicitly set the response title (required for Zabbix 6.0)
