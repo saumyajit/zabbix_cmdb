@@ -73,7 +73,7 @@ The **Zabbix CMDB Module** is a comprehensive frontend module that provides Conf
 **For Zabbix 6.0 / 7.0:**
 ```bash
 sudo git clone https://github.com/saumyajit/zabbix_cmdb.git /usr/share/zabbix/modules/
-
+```
 **For Zabbix 7.4:**
 ```bash
 sudo git clone https://github.com/saumyajit/zabbix_cmdb.git /usr/share/zabbix/modules/
