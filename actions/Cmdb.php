@@ -417,7 +417,7 @@ class Cmdb extends CController {
         }
         
         $response = new CControllerResponseData([
-            'title' => LanguageManager::t('Host List'),
+            'title' => LanguageManager::t('Configuration Management Database (CMDB) in Zabbix'),
             'host_groups' => $hostGroups,
             'hosts' => $hostData,
             'search' => $search,
