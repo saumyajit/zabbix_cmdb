@@ -410,6 +410,45 @@ $styleTag = new CTag('style', true, '
     color: #856404;
     border: 1px solid #ffeaa7;
 }
+
+.disk-usage-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 11px;
+    max-height: 55px;
+    overflow: hidden;
+}
+
+.disk-usage-item {
+    display: flex;
+    align-items: center;
+    padding: 1px 0;
+}
+
+.disk-mount {
+    font-weight: 600;
+    min-width: 45px;
+    margin-right: 5px;
+}
+
+.disk-percentage {
+    font-weight: 600;
+}
+
+.disk-high {
+    color: #dc3545;
+}
+
+.disk-medium {
+    color: #ffc107;
+}
+
+.disk-normal {
+    color: #28a745;
+}
+
 ');
 
 // Create the main content
@@ -505,6 +544,7 @@ if (!empty($data['hosts'])) {
     $content->addItem(
         (new CDiv())
             ->addClass('stats-container')
+            // CPU Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -516,6 +556,7 @@ if (!empty($data['hosts'])) {
                             ->addItem((new CDiv(LanguageManager::t('CPU Total')))->addClass('stat-label'))
                     )
             )
+            // Memory Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -526,18 +567,20 @@ if (!empty($data['hosts'])) {
                             ->addItem((new CDiv($data['total_memory'] ? ItemFinder::formatMemorySize($data['total_memory']) : '0 B'))->addClass('stat-number'))
                             ->addItem((new CDiv(LanguageManager::t('Memory Total')))->addClass('stat-label'))
                     )
-            )
-            ->addItem(
-                (new CDiv())
-                    ->addClass('stat-card')
-                    ->addItem((new CSpan('🖥️'))->addClass('stat-icon'))
-                    ->addItem(
-                        (new CDiv())
-                            ->addClass('stat-content')
-                            ->addItem((new CDiv(count($data['hosts'])))->addClass('stat-number'))
-                            ->addItem((new CDiv(LanguageManager::t('Total Hosts')))->addClass('stat-label'))
-                    )
-            )
+            )			
+			// Storage Card
+			->addItem(
+				(new CDiv())
+					->addClass('stat-card')
+					->addItem((new CSpan('💿'))->addClass('stat-icon'))
+					->addItem(
+						(new CDiv())
+							->addClass('stat-content')
+							->addItem((new CDiv($data['total_storage'] ? ItemFinder::formatMemorySize($data['total_storage']) : '0 B'))->addClass('stat-number'))
+							->addItem((new CDiv(LanguageManager::t('Storage Total')))->addClass('stat-label'))
+					)
+			)
+            // Total HostGroup Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -549,10 +592,23 @@ if (!empty($data['hosts'])) {
                             ->addItem((new CDiv(LanguageManager::t('Host Groups')))->addClass('stat-label'))
                     )
             )
+            // Total Host Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
                     ->addItem((new CSpan('🖥️'))->addClass('stat-icon'))
+                    ->addItem(
+                        (new CDiv())
+                            ->addClass('stat-content')
+                            ->addItem((new CDiv(count($data['hosts'])))->addClass('stat-number'))
+                            ->addItem((new CDiv(LanguageManager::t('Total Hosts')))->addClass('stat-label'))
+                    )
+            )
+            // Active/Enable Host Card
+            ->addItem(
+                (new CDiv())
+                    ->addClass('stat-card')
+                    ->addItem((new CSpan('🟢🖥️'))->addClass('stat-icon'))
                     ->addItem(
                         (new CDiv())
                             ->addClass('stat-content')
@@ -578,6 +634,7 @@ $header = [
     createSortLink(LanguageManager::t('CPU Usage'), 'cpu_usage', $data),
     createSortLink(LanguageManager::t('Memory Total'), 'memory_total', $data),
     createSortLink(LanguageManager::t('Memory Usage'), 'memory_usage', $data),
+    LanguageManager::t('Disk Usage'),
     createSortLink(LanguageManager::t('Operating System'), 'operating_system', $data),
     LanguageManager::t('Host Group')
 ];
@@ -588,7 +645,7 @@ if (empty($data['hosts'])) {
     $table->addRow([
         (new CCol(LanguageManager::t('No hosts found')))
             ->addClass('no-data')
-            ->setAttribute('colspan', 11)
+            ->setAttribute('colspan', 12)
     ]);
 } else {
     // Add host data rows
@@ -749,6 +806,39 @@ if (empty($data['hosts'])) {
             $memoryUsageCol->addItem((new CSpan('⚪ -'))->setAttribute('style', 'color: #6c757d;'));
         }
 
+		// Disk Usage
+		$diskUsageCol = new CCol();
+		if (!empty($host['disk_usage'])) {
+			$diskContainer = (new CDiv())->addClass('disk-usage-container');
+			
+			foreach ($host['disk_usage'] as $disk) {
+				$percentage = $disk['percentage'];
+				$mount = htmlspecialchars($disk['mount']);
+				
+				// Determine color based on usage
+				$colorClass = 'disk-normal';
+				$icon = '🟢';
+				if ($percentage > 80) {
+					$colorClass = 'disk-high';
+					$icon = '🔴';
+				} elseif ($percentage > 60) {
+					$colorClass = 'disk-medium';
+					$icon = '🟡';
+				}
+				
+				$diskItem = (new CDiv())
+					->addClass('disk-usage-item')
+					->addItem((new CSpan($mount . ':'))->addClass('disk-mount'))
+					->addItem((new CSpan($icon . ' ' . $percentage . '%'))->addClass('disk-percentage ' . $colorClass));
+				
+				$diskContainer->addItem($diskItem);
+			}
+			
+			$diskUsageCol->addItem($diskContainer);
+		} else {
+			$diskUsageCol->addItem((new CSpan('⚪ -'))->setAttribute('style', 'color: #6c757d;'));
+		}
+
         // Operating System
         $osCol = new CCol();
         if (isset($host['operating_system']) && $host['operating_system'] !== null) {
@@ -804,6 +894,7 @@ if (empty($data['hosts'])) {
             $cpuUsageCol,
             $memoryCol,
             $memoryUsageCol,
+			$diskUsageCol,
             $osCol,
             $groupCol
         ]);
