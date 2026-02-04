@@ -138,6 +138,8 @@ cmdb/
 ├── lib/
 │ ├── LanguageManager.php   # Language support (English)
 │ └── ItemFinder.php        # Utility functions
+│ └── ViewRenderer.php      # Utility functions
+│ └── ZabbixVersion.php     # Utility functions
 └── images/                 # Screenshots and assets
 ```
 
