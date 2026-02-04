@@ -102,6 +102,22 @@ function countActiveHosts($hosts) {
     return $activeCount;
 }
 
+// Safety check for data array
+if (!isset($data)) {
+    $data = [
+        'hosts' => [],
+        'host_groups' => [],
+        'search' => '',
+        'selected_groupid' => 0,
+        'interface_type' => 0,
+        'sort' => 'cpu_total',
+        'sortorder' => 'DESC',
+        'total_cpu' => 0,
+        'total_memory' => 0,
+        'total_storage' => 0
+    ];
+}
+
 // Get the title from the controller
 $pageTitle = $data['title'] ?? 'CMDB';
 
