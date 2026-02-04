@@ -266,6 +266,7 @@ $styleTag = new CTag('style', true, '
 
 .stat-label {
     font-size: 0.875rem;
+	font-family: "Trebuchet MS", "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Tahoma, sans-serif;
     color: #6c757d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
