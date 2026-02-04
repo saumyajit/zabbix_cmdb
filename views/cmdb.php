@@ -164,7 +164,7 @@ $styleTag = new CTag('style', true, '
     font-weight: 600;
     margin-bottom: 5px;
     color: #495057;
-    font-size: 13px;
+    font-size: 16px;
 }
 
 .form-field input,
