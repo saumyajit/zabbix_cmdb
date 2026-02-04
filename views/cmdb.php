@@ -258,7 +258,7 @@ $styleTag = new CTag('style', true, '
 
 .stat-number {
     font-size: 1.8rem;
-	font-family: "Trebuchet MS", "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Tahoma, sans-serif;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-weight: 600;
     color: #495057;
     margin-bottom: 5px;
