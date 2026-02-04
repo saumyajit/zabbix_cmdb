@@ -40,14 +40,14 @@ class Module extends ModuleBase {
                         ->findOrAdd(_('Inventory'))
                         ->getSubmenu()
                         ->add(
-                         // (new CMenuItem($lm->t('CMDB')))->setSubMenu(
+                         //   (new CMenuItem($lm->t('CMDB')))->setSubMenu(
                             (new CMenuItem(_('CMDB')))->setAction('cmdb')
-                         //     new CMenu([
-                         //         (new CMenuItem($lm->t('Host List')))->setAction('cmdb'),
-                         //         (new CMenuItem($lm->t('Host Groups')))->setAction('cmdb.groups')
-                         //     ])
-                            )
-                       // );
+                         //       new CMenu([
+                         //           (new CMenuItem($lm->t('Host List')))->setAction('cmdb'),
+                         //           (new CMenuItem($lm->t('Host Groups')))->setAction('cmdb.groups')
+                         //       ])
+                         //   )
+                          );
                 }
             }
         } catch (\Exception $e) {
