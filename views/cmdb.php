@@ -114,7 +114,10 @@ if (!isset($data)) {
         'sortorder' => 'DESC',
         'total_cpu' => 0,
         'total_memory' => 0,
-        'total_storage' => 0
+        'total_storage' => 0,
+        'avg_cpu_usage' => 0,
+        'avg_memory_usage' => 0,
+        'avg_storage_usage' => 0
     ];
 }
 
@@ -603,7 +606,8 @@ if (!empty($data['hosts'])) {
     $content->addItem(
         (new CDiv())
             ->addClass('stats-container')
-            // CPU Card
+            
+            // CPU Total Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -615,7 +619,21 @@ if (!empty($data['hosts'])) {
                             ->addItem((new CDiv(LanguageManager::t('CPU Total')))->addClass('stat-label'))
                     )
             )
-            // Memory Card
+            
+            // CPU Usage Card
+            ->addItem(
+                (new CDiv())
+                    ->addClass('stat-card')
+                    ->addItem((new CSpan('⚡'))->addClass('stat-icon'))
+                    ->addItem(
+                        (new CDiv())
+                            ->addClass('stat-content')
+                            ->addItem((new CDiv(($data['avg_cpu_usage'] ?? 0) . '%'))->addClass('stat-number'))
+                            ->addItem((new CDiv(LanguageManager::t('CPU Used')))->addClass('stat-label'))
+                    )
+            )
+            
+            // Memory Total Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -626,31 +644,47 @@ if (!empty($data['hosts'])) {
                             ->addItem((new CDiv($data['total_memory'] ? ItemFinder::formatMemorySize($data['total_memory']) : '0 B'))->addClass('stat-number'))
                             ->addItem((new CDiv(LanguageManager::t('Memory Total')))->addClass('stat-label'))
                     )
-            )			
-			// Storage Card
-			->addItem(
-				(new CDiv())
-					->addClass('stat-card')
-					->addItem((new CSpan('💿'))->addClass('stat-icon'))
-					->addItem(
-						(new CDiv())
-							->addClass('stat-content')
-							->addItem((new CDiv($data['total_storage'] ? ItemFinder::formatMemorySize($data['total_storage']) : '0 B'))->addClass('stat-number'))
-							->addItem((new CDiv(LanguageManager::t('Storage Total')))->addClass('stat-label'))
-					)
-			)
-            // Total HostGroup Card
+            )
+            
+            // Memory Usage Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
-                    ->addItem((new CSpan('🗂️'))->addClass('stat-icon'))
+                    ->addItem((new CSpan('📊'))->addClass('stat-icon'))
                     ->addItem(
                         (new CDiv())
                             ->addClass('stat-content')
-                            ->addItem((new CDiv(count($data['host_groups'])))->addClass('stat-number'))
-                            ->addItem((new CDiv(LanguageManager::t('Host Groups')))->addClass('stat-label'))
+                            ->addItem((new CDiv(($data['avg_memory_usage'] ?? 0) . '%'))->addClass('stat-number'))
+                            ->addItem((new CDiv(LanguageManager::t('Memory Used')))->addClass('stat-label'))
                     )
             )
+            
+            // Storage Total Card
+            ->addItem(
+                (new CDiv())
+                    ->addClass('stat-card')
+                    ->addItem((new CSpan('💿'))->addClass('stat-icon'))
+                    ->addItem(
+                        (new CDiv())
+                            ->addClass('stat-content')
+                            ->addItem((new CDiv($data['total_storage'] ? ItemFinder::formatMemorySize($data['total_storage']) : '0 B'))->addClass('stat-number'))
+                            ->addItem((new CDiv(LanguageManager::t('Storage Total')))->addClass('stat-label'))
+                    )
+            )
+            
+            // Storage Usage Card
+            ->addItem(
+                (new CDiv())
+                    ->addClass('stat-card')
+                    ->addItem((new CSpan('📈'))->addClass('stat-icon'))
+                    ->addItem(
+                        (new CDiv())
+                            ->addClass('stat-content')
+                            ->addItem((new CDiv(($data['avg_storage_usage'] ?? 0) . '%'))->addClass('stat-number'))
+                            ->addItem((new CDiv(LanguageManager::t('Storage Used')))->addClass('stat-label'))
+                    )
+            )
+            
             // Total Host Card
             ->addItem(
                 (new CDiv())
@@ -663,11 +697,12 @@ if (!empty($data['hosts'])) {
                             ->addItem((new CDiv(LanguageManager::t('Total Hosts')))->addClass('stat-label'))
                     )
             )
+            
             // Active/Enable Host Card
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
-                    ->addItem((new CSpan('🟢🖥️'))->addClass('stat-icon'))
+                    ->addItem((new CSpan('🟢'))->addClass('stat-icon'))
                     ->addItem(
                         (new CDiv())
                             ->addClass('stat-content')
