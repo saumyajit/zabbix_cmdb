@@ -41,7 +41,7 @@ class Module extends ModuleBase {
                         ->getSubmenu()
                         ->add(
                          // (new CMenuItem($lm->t('CMDB')))->setSubMenu(
-                            (new CMenuItem($lm->t('CMDB')))->setAction('cmdb')
+                            (new CMenuItem(_('CMDB')))->setAction('cmdb')
                          //     new CMenu([
                          //         (new CMenuItem($lm->t('Host List')))->setAction('cmdb'),
                          //         (new CMenuItem($lm->t('Host Groups')))->setAction('cmdb.groups')
