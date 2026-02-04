@@ -122,12 +122,13 @@ if (!isset($data)) {
 }
 
 // Get the title from the controller
-$pageTitle = $data['title'] ?? 'CMDB';
+// $pageTitle = $data['title'] ?? 'CMDB';
+$pageTitle = [];
 
 // Add CSS consistent with the Zabbix theme
 $styleTag = new CTag('style', true, '
 .cmdb-container {
-    padding: 20px;
+    padding: 2px;
     width: 100%;
     margin: 0 auto;
 }
@@ -463,6 +464,26 @@ $styleTag = new CTag('style', true, '
     font-weight: 600;
 }
 
+.cmdb-title {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cmdb-title h1 {
+    color: #ffffff;
+    font-size: 36px;
+	font-family: "Trebuchet MS", "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Tahoma, sans-serif;
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.5px;
+}
+
+
 /* Column width controls */
 .hosts-table thead th:nth-child(1) { width: 180px; } /* Host Name */
 .hosts-table thead th:nth-child(2) { width: 70px; } /* IP Address */
@@ -499,7 +520,17 @@ $styleTag = new CTag('style', true, '
 // Create the main content
 $content = (new CDiv())
     ->addClass('cmdb-container')
+    
+	// ADD TITLE HERE (BEFORE THE SEARCH FORM)
     ->addItem(
+        (new CDiv())
+            ->addClass('cmdb-title')
+            ->addItem(
+                (new CTag('h1', true, LanguageManager::t('Configuration Management Database (CMDB) in Zabbix')))
+            )
+    )
+	
+	->addItem(
         (new CDiv())
             ->addClass('cmdb-search-form')
             ->addItem(
@@ -620,7 +651,7 @@ if (!empty($data['hosts'])) {
                     )
             )
             
-            // CPU Usage Card
+            // CPU Usage Card (NEW)
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -646,7 +677,7 @@ if (!empty($data['hosts'])) {
                     )
             )
             
-            // Memory Usage Card
+            // Memory Usage Card (NEW)
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
@@ -672,7 +703,7 @@ if (!empty($data['hosts'])) {
                     )
             )
             
-            // Storage Usage Card
+            // Storage Usage Card (NEW)
             ->addItem(
                 (new CDiv())
                     ->addClass('stat-card')
