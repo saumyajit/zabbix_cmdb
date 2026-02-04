@@ -511,7 +511,7 @@ $content = (new CDiv())
                                         $select->setAttribute('onchange', 'handleGroupChange(this)');
 
                                         // Add the “All Groups” option
-                                        $optAll = new CTag('option', true, LanguageManager::t('All Groups'));
+                                        $optAll = new CTag('option', true, LanguageManager::t('Select Group'));
                                         $optAll->setAttribute('value', '0');
                                         $select->addItem($optAll);
 
