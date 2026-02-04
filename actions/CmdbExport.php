@@ -43,6 +43,15 @@ class CmdbExport extends CController {
         $groupid = $this->getInput('groupid', 0);
         $interface_type = $this->getInput('interface_type', 0);
 
+        // NEW: Check if at least one filter is applied
+        $hasFilter = !empty($search) || $groupid > 0 || $interface_type > 0;
+        
+        if (!$hasFilter) {
+            // No filter selected - export a message CSV instead
+            $this->exportEmptyMessage();
+            return;
+        }
+
         // Reuse the same host retrieval logic from Cmdb.php
         $hosts = $this->getFilteredHosts($search, $groupid, $interface_type);
         
@@ -52,7 +61,6 @@ class CmdbExport extends CController {
 
     private function getFilteredHosts($search, $groupid, $interface_type) {
         // Copy the exact same host retrieval logic from your Cmdb.php
-        // (lines 153-283 from your Cmdb.php)
         
         if (!empty($search)) {
             $allFoundHosts = [];
@@ -177,6 +185,26 @@ class CmdbExport extends CController {
         }
 
         return $filteredHosts;
+    }
+
+    private function exportEmptyMessage() {
+        // Set headers for CSV download
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="cmdb_export_' . date('Y-m-d_His') . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Open output stream
+        $output = fopen('php://output', 'w');
+        
+        // Write UTF-8 BOM for Excel compatibility
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Write message
+        fputcsv($output, [LanguageManager::t('Please select a filter (Host Group, Interface Type, or Search) before exporting.')]);
+        
+        fclose($output);
+        exit;
     }
 
     private function generateCSV($hosts) {
