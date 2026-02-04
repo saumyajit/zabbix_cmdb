@@ -564,11 +564,17 @@ $content = (new CDiv())
                                 (new CDiv())
                                     ->addClass('form-field')
                                     ->addItem(
-                                        (new CButton('export', '📥 ' . LanguageManager::t('Export To CSV')))
-                                            ->addClass('btn')
-                                            ->addClass('btn-secondary')
-                                            ->setAttribute('type', 'button')
-                                            ->setAttribute('onclick', 'exportToCSV()')
+										(new CButton('export', '📥 ' . LanguageManager::t('Export To CSV')))
+											->addClass('btn')
+											->addClass('btn-secondary')
+											->setAttribute('type', 'button')
+											->setAttribute('onclick', '(function(){
+												var url = new URLSearchParams(window.location.search);
+												window.location.href = "zabbix.php?action=cmdb.export&format=csv&search=" + 
+													encodeURIComponent(url.get("search")||"") + 
+													"&groupid=" + encodeURIComponent(url.get("groupid")||"0") + 
+													"&interface_type=" + encodeURIComponent(url.get("interface_type")||"0");
+											})()')
                                     )
                             )
                     )
