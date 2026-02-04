@@ -267,6 +267,7 @@ $styleTag = new CTag('style', true, '
     color: #6c757d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+	padding-top: 10px;
 }
 
 .hosts-table {
